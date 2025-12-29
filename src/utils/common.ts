@@ -195,3 +195,26 @@ export function getCountryCode(): string | null {
 
   return "US";
 }
+
+export function formatSpeed(bytesPerSecond: number): string {
+  return `${filesize(bytesPerSecond)}/s`;
+}
+
+export function formatETA(seconds: number): string {
+  if (seconds < 60) {
+    return `${Math.round(seconds)}s left`;
+  }
+  if (seconds < 3600) {
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.round(seconds % 60);
+    return secs > 0 ? `${minutes}m ${secs}s left` : `${minutes}m left`;
+  }
+  if (seconds < 86400) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return minutes > 0 ? `${hours}h ${minutes}m left` : `${hours}h left`;
+  }
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  return hours > 0 ? `${days}d ${hours}h left` : `${days}d left`;
+}

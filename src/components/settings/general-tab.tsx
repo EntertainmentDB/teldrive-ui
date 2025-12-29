@@ -1,193 +1,63 @@
 import { memo, useCallback } from "react";
-import { Button, Input, scrollbarClasses, Select, SelectItem, Switch } from "@tw-material/react";
+import { scrollbarClasses } from "@tw-material/react";
 import clsx from "clsx";
-import { Controller, useForm } from "react-hook-form";
 
-import useSettings from "@/hooks/use-settings";
-import { splitFileSizes } from "@/utils/common";
+import { generalSettingsConfig, categoryConfig } from "@/config/settings";
+import { SettingsField } from "./settings-field";
+import { useSettingsStore } from "@/utils/stores/settings";
 
-function validateUrl(value: string) {
-  try {
-    new URL(value);
-    return true;
-  } catch {
-    return false;
-  }
-}
 export const GeneralTab = memo(() => {
-  const { settings, setSettings } = useSettings();
+  const { settings, updateSetting } = useSettingsStore();
 
-  const { control, handleSubmit } = useForm({
-    defaultValues: settings,
-  });
+  const categories = ["upload", "display", "other"] as const;
 
-  const onSubmit = useCallback((data: typeof settings) => setSettings(data), []);
+  const handleFieldChange = useCallback(
+    (key: keyof typeof settings, value: any) => {
+      if (value instanceof HTMLElement || value instanceof Event) {
+        console.error("Invalid value type for setting:", key, value);
+        return;
+      }
+      updateSetting(key, value);
+    },
+    [updateSetting],
+  );
 
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      className={clsx("flex flex-col gap-6 p-4 h-full overflow-y-auto", scrollbarClasses)}
+    <div
+      className={clsx(
+        "flex flex-col gap-4 p-4 h-full overflow-y-auto",
+        scrollbarClasses,
+      )}
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-        <div>
-          <p className="text-lg font-medium">Upload Concurrency</p>
-          <p className="text-sm font-normal text-on-surface-variant">Concurrent Part Uploads</p>
-        </div>
-        <Controller
-          name="uploadConcurrency"
-          control={control}
-          render={({ field, fieldState: { error } }) => (
-            <Input
-              size="lg"
-              variant="bordered"
-              isInvalid={!!error}
-              errorMessage={error?.message}
-              type="number"
-              {...field}
-            />
-          )}
-        />
-      </div>
+      {categories.map((category) => {
+        const fields = generalSettingsConfig.filter(
+          (f) => f.category === category,
+        );
+        if (fields.length === 0) return null;
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-        <div>
-          <p className="text-lg font-medium">Resizer Host</p>
-          <p className="text-sm font-normal text-on-surface-variant">
-            Image Resize Host to resize images
-          </p>
-        </div>
-        <Controller
-          name="resizerHost"
-          control={control}
-          rules={{
-            validate: (value) => (value ? validateUrl(value) || "Must be a valid Host" : true),
-          }}
-          render={({ field, fieldState: { error } }) => (
-            <Input
-              size="lg"
-              variant="bordered"
-              placeholder="https://resizer.example.com"
-              isInvalid={!!error}
-              errorMessage={error?.message}
-              {...field}
-            />
-          )}
-        />
-      </div>
+        const catConfig = categoryConfig[category];
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-        <div>
-          <p className="text-lg font-medium">Page Size</p>
-          <p className="text-sm font-normal text-on-surface-variant">Number of items per page</p>
-        </div>
-        <Controller
-          name="pageSize"
-          control={control}
-          render={({ field, fieldState: { error } }) => (
-            <Input
-              size="lg"
-              variant="bordered"
-              isInvalid={!!error}
-              errorMessage={error?.message}
-              {...field}
-              type="number"
-            />
-          )}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-        <div>
-          <p className="text-lg font-medium">Split File Size</p>
-          <p className="text-sm font-normal text-on-surface-variant">
-            Split File Size for multipart uploads
-          </p>
-        </div>
-        <Controller
-          name="splitFileSize"
-          control={control}
-          render={({ field, fieldState: { error } }) => (
-            <Select
-              aria-label="Split File Size"
-              size="lg"
-              variant="bordered"
-              isInvalid={!!error}
-              defaultSelectedKeys={[field.value]}
-              scrollShadowProps={{
-                isEnabled: false,
-              }}
-              classNames={{
-                popoverContent: "rounded-lg shadow-1",
-              }}
-              items={splitFileSizes}
-              errorMessage={error?.message}
-              {...field}
-            >
-              {(size) => (
-                <SelectItem key={size.value} value={size.value}>
-                  {size.label}
-                </SelectItem>
-              )}
-            </Select>
-          )}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-        <div>
-          <p className="text-lg font-medium">Encrypt Files</p>
-          <p className="text-sm font-normal text-on-surface-variant">
-            Encrypt Files before uploading
-          </p>
-        </div>
-        <div className="flex justify-start">
-          <Controller
-            name="encryptFiles"
-            control={control}
-            render={({ field }) => (
-              <Switch
-                size="lg"
-                onChange={field.onChange}
-                isSelected={field.value}
-                name={field.name}
-                onBlur={field.onBlur}
-              />
-            )}
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-        <div>
-          <p className="text-lg font-medium">Rclone Media Proxy</p>
-          <p className="text-sm font-normal text-on-surface-variant">
-            Play Files directly from Rclone Webdav
-          </p>
-        </div>
-        <Controller
-          name="rcloneProxy"
-          control={control}
-          rules={{
-            validate: (value) => (value ? validateUrl(value) || "Must be a valid Host" : true),
-          }}
-          render={({ field, fieldState: { error } }) => (
-            <Input
-              size="lg"
-              variant="bordered"
-              placeholder="http://localhost:8080"
-              isInvalid={!!error}
-              errorMessage={error?.message}
-              {...field}
-            />
-          )}
-        />
-      </div>
-
-      <div className="flex justify-end mt-4">
-        <Button type="submit" variant="filledTonal">
-          Save
-        </Button>
-      </div>
-    </form>
+        return (
+          <div
+            key={category}
+            className="bg-surface rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow duration-300 border border-outline-variant/50 flex flex-col gap-4"
+          >
+            <div className="flex items-start gap-3">
+              <h3 className="text-lg font-semibold">{catConfig.title}</h3>
+            </div>
+            <div className="space-y-4">
+              {fields.map((field) => (
+                <SettingsField
+                  key={field.key}
+                  config={field}
+                  value={settings[field.key]}
+                  onChange={(value) => handleFieldChange(field.key, value)}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 });

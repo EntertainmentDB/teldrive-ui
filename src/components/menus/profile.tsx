@@ -1,5 +1,11 @@
-import { Link } from "@tanstack/react-router";
-import { Avatar, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@tw-material/react";
+import { useNavigate } from "@tanstack/react-router";
+import {
+  Avatar,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+} from "@tw-material/react";
 import IconBaselineLogout from "~icons/ic/baseline-logout";
 import IconOutlineSettings from "~icons/ic/outline-settings";
 
@@ -11,6 +17,8 @@ export function ProfileDropDown() {
   const [session] = useSession();
 
   const signOut = $api.useMutation("post", "/auth/logout");
+
+  const navigate = useNavigate();
 
   const onSignOut = useCallback(() => {
     signOut.mutateAsync({}).then(() => {
@@ -36,6 +44,11 @@ export function ProfileDropDown() {
       <DropdownMenu
         aria-label="Profile Menu"
         className="rounded-lg shadow-1"
+        onAction={(key) => {
+          if (String(key) == "settings") {
+            navigate({ to: "/settings/$tabId", params: { tabId: "general" } });
+          }
+        }}
         itemClasses={{
           title: "text-medium",
           startContent: "text-on-surface",
@@ -48,10 +61,6 @@ export function ProfileDropDown() {
 
         <DropdownItem
           key="settings"
-          as={Link}
-          //@ts-ignore
-          to="/settings/$tabId"
-          params={{ tabId: "general" }}
           endContent={<IconOutlineSettings className="size-6" />}
         >
           Settings

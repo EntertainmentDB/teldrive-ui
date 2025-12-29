@@ -19,10 +19,10 @@ import {
   ModalContent,
 } from "@tw-material/react";
 import IcRoundCancel from "~icons/ic/round-cancel";
-import IcRoundCheckCircle from "~icons/ic/round-check-circle";
 import IcRoundContentCopy from "~icons/ic/round-content-copy";
 import IcRoundRemoveCircleOutline from "~icons/ic/round-remove-circle-outline";
 import clsx from "clsx";
+import { motion } from "framer-motion";
 
 import { Controller, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
@@ -35,6 +35,10 @@ import { NetworkError } from "@/utils/fetch-throw";
 import SyncIcon from "~icons/material-symbols/sync";
 import DeleteIcon from "~icons/material-symbols/delete";
 import AddIcon from "~icons/material-symbols/add-circle";
+import MaterialSymbolsSmartToy from "~icons/material-symbols/smart-toy";
+import MaterialSymbolsTv from "~icons/material-symbols/tv";
+import IcRoundSecurity from "~icons/ic/round-security";
+import IcRoundCheck from "~icons/ic/round-check";
 
 const validateBots = (value?: string) => {
   if (value) {
@@ -44,52 +48,71 @@ const validateBots = (value?: string) => {
   return false;
 };
 
+const formatDate = (date: string) => {
+  const d = new Date(date);
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+};
+
 const Session = memo(
   ({ appName, location, createdAt, valid, hash, current }: UserSession) => {
     const deleteSession = $api.useMutation("delete", "/users/sessions/{id}", {
       onSettled: () => {
         queryClient.invalidateQueries({
-          queryKey: $api.queryKey("get", "/users/sessions"),
+          queryKey: $api.queryOptions("get", "/users/sessions").queryKey,
         });
       },
     });
     const queryClient = useQueryClient();
 
     return (
-      <div
-        className={clsx(
-          "flex  flex-col justify-between p-4 rounded-lg gap-1 relative",
-          valid ? "bg-green-500/20" : "bg-red-500/20",
-        )}
-      >
-        {(!current || !valid) && (
-          <Button
-            isIconOnly
-            variant="text"
-            size="sm"
-            className="absolute top-1 right-1"
-            onPress={() =>
-              deleteSession.mutateAsync({ params: { path: { id: hash } } })
-            }
-          >
-            <IcRoundCancel />
-          </Button>
-        )}
-
-        <div className="flex gap-1 items-center">
-          {valid ? (
-            <IcRoundCheckCircle className="text-green-500 size-4" />
-          ) : (
-            <IcRoundCancel className="text-red-500 size-4" />
+      <div className="bg-surface-container-low rounded-xl p-4 border border-outline-variant/30 hover:border-outline-variant hover:shadow-sm transition-all duration-300 relative group">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div
+              className={`w-2 h-2 rounded-full ${valid ? "bg-green-500" : "bg-red-500"}`}
+            />
+            <p className="font-medium text-base">{appName || "Unknown"}</p>
+            {current && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium">
+                Current
+              </span>
+            )}
+          </div>
+          {(!current || !valid) && (
+            <Button
+              isIconOnly
+              variant="text"
+              size="sm"
+              className="opacity-0 group-hover:opacity-100 transition-opacity"
+              onPress={() =>
+                deleteSession.mutateAsync({ params: { path: { id: hash } } })
+              }
+            >
+              <DeleteIcon />
+            </Button>
           )}
-          <p className="font-medium">{appName || "Unknown"}</p>
         </div>
-        <p className="text-sm font-normal">
-          Created : {new Date(createdAt).toISOString().split("T")[0]}
-        </p>
-        {location && (
-          <p className="text-sm font-normal">Location : {location}</p>
-        )}
+
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 text-sm text-on-surface-variant">
+            <span>Created</span>
+            <span className="font-medium text-on-surface">•</span>
+            <span className="font-medium text-on-surface">
+              {formatDate(createdAt)}
+            </span>
+          </div>
+          {location && (
+            <div className="flex items-center gap-2 text-sm text-on-surface-variant">
+              <span>Location</span>
+              <span className="font-medium text-on-surface">•</span>
+              <span className="font-medium text-on-surface">{location}</span>
+            </div>
+          )}
+        </div>
       </div>
     );
   },
@@ -155,6 +178,40 @@ const ChannelCreateDialog = ({ handleClose }: { handleClose: () => void }) => {
   );
 };
 
+const BotRemoveDialog = ({
+  handleClose,
+  onRemove,
+}: {
+  handleClose: () => void;
+  onRemove: () => void;
+}) => {
+  return (
+    <>
+      <ModalHeader className="flex flex-col gap-1">Remove All Bots</ModalHeader>
+      <ModalBody>
+        <p className="text-lg font-medium mt-2">
+          Are you sure you want to remove all bots?
+        </p>
+        <p className="text-sm text-on-surface-variant mt-1">
+          This action cannot be undone.
+        </p>
+      </ModalBody>
+      <ModalFooter>
+        <Button className="font-normal" variant="text" onPress={handleClose}>
+          Cancel
+        </Button>
+        <Button
+          variant="filledTonal"
+          className="font-normal bg-red-500/20 text-red-500 data-[hover=true]:bg-red-500/30"
+          onPress={onRemove}
+        >
+          Remove All
+        </Button>
+      </ModalFooter>
+    </>
+  );
+};
+
 const ChannelDeleteDialog = ({
   channelId,
   handleClose,
@@ -186,9 +243,9 @@ const ChannelDeleteDialog = ({
     <>
       <ModalHeader className="flex flex-col gap-1">Delete Channel</ModalHeader>
       <ModalBody>
-        <h1 className="text-large font-medium mt-2">
-          Are you sure to delete this channel
-        </h1>
+        <p className="text-lg font-medium mt-2">
+          Are you sure you want to delete this channel?
+        </p>
       </ModalBody>
       <ModalFooter>
         <Button className="font-normal" variant="text" onPress={handleClose}>
@@ -215,6 +272,34 @@ interface ChannelOperationProps {
   operation: "add" | "delete";
   channelId: number;
 }
+
+interface BotOperationProps {
+  open: boolean;
+  handleClose: () => void;
+  onRemove: () => void;
+}
+
+const BotOperationModal = memo(
+  ({ open, handleClose, onRemove }: BotOperationProps) => {
+    return (
+      <Modal
+        isOpen={open}
+        size="md"
+        classNames={{
+          wrapper: "overflow-hidden",
+          base: "bg-surface w-full shadow-none",
+        }}
+        placement="center"
+        onClose={handleClose}
+        hideCloseButton
+      >
+        <ModalContent>
+          <BotRemoveDialog handleClose={handleClose} onRemove={onRemove} />
+        </ModalContent>
+      </Modal>
+    );
+  },
+);
 
 const ChannelOperationModal = memo(
   ({ open, handleClose, operation, channelId }: ChannelOperationProps) => {
@@ -268,8 +353,17 @@ export const AccountTab = memo(() => {
   const removeBots = $api.useMutation("delete", "/users/bots", {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["get", "/users/config"] });
+      toast.success("All bots removed");
+      setBotOpen(false);
+    },
+    onError: () => {
+      toast.error("Failed to remove bots");
     },
   });
+
+  const handleRemoveBots = useCallback(() => {
+    removeBots.mutate({});
+  }, []);
 
   const syncChannels = $api.useMutation("patch", "/users/channels/sync", {
     onSuccess: () => {
@@ -359,93 +453,134 @@ export const AccountTab = memo(() => {
     [channelData, updateChannel],
   );
 
-  const [open, setOpen] = useState(false);
-
+  const [botOpen, setBotOpen] = useState(false);
+  const [channelOpen, setChannelOpen] = useState(false);
   const [channelOperation, setChannelOperation] = useState<"add" | "delete">(
     "add",
   );
-
   const [channelID, setChannelID] = useState(0);
 
   return (
     <div
       className={clsx(
-        "flex flex-col gap-6 p-4 w-full h-full overflow-y-auto",
+        "flex flex-col gap-4 p-4 w-full h-full overflow-y-auto",
         scrollbarClasses,
       )}
     >
-      <div className="p-4 rounded-lg border border-outline-variant">
-        <h4 className="text-lg font-medium pb-2">Manage Bots</h4>
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="flex flex-col gap-3 mb-4"
-        >
-          <Controller
-            name="tokens"
-            control={control}
-            rules={{ required: true, validate: validateBots }}
-            render={({ field, fieldState: { error } }) => (
-              <Textarea
-                {...field}
-                disableAutosize
-                classNames={{
-                  input: "h-32 min-h-[8rem]",
-                  inputWrapper:
-                    "bg-surface-container-low data-[hover=true]:bg-surface-container group-data-[focus=true]:bg-surface-container",
-                }}
-                placeholder="Enter tokens 1 per line"
-                autoComplete="off"
-                errorMessage={error ? error.message : ""}
-                isInvalid={!!error}
-              />
-            )}
-          />
-          <Button
-            isLoading={botAddition.isPending}
-            type="submit"
-            variant="filledTonal"
-            className="self-start"
-          >
-            Add Bots
-          </Button>
-        </form>
-        <div className="flex justify-between items-center pt-2">
-          <p className="text-base font-medium">{`Current Bots: ${userConfig?.bots.length || 0}`}</p>
-          <div className="inline-flex gap-2">
-            <Button
-              title="Copy Tokens to Clipboard"
-              variant="text"
-              className="text-inherit"
-              onPress={copyTokens}
-              isIconOnly
-            >
-              <IcRoundContentCopy />
-            </Button>
-            <Button
-              variant="text"
-              title="Remove All Bots"
-              className="text-inherit"
-              onPress={() => removeBots.mutate({})}
-              isLoading={removeBots.isPending}
-              isIconOnly
-            >
-              <IcRoundRemoveCircleOutline />
-            </Button>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="bg-surface rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow duration-300 border border-outline-variant/50"
+      >
+        <div className="flex items-start gap-3">
+          <div className="p-2.5 rounded-xl bg-primary/10">
+            <MaterialSymbolsSmartToy className="size-5 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg font-semibold mb-0.5">Manage Bots</h3>
           </div>
         </div>
-      </div>
+        <div className="mt-4 space-y-4">
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="flex flex-col gap-3"
+          >
+            <Controller
+              name="tokens"
+              control={control}
+              rules={{ required: true, validate: validateBots }}
+              render={({ field, fieldState: { error } }) => (
+                <Textarea
+                  {...field}
+                  disableAutosize
+                  classNames={{
+                    input: "h-32 min-h-[8rem]",
+                    inputWrapper:
+                      "bg-surface-container-low data-[hover=true]:bg-surface-container group-data-[focus=true]:bg-surface-container",
+                  }}
+                  placeholder="Enter tokens 1 per line"
+                  autoComplete="off"
+                  errorMessage={error ? error.message : ""}
+                  isInvalid={!!error}
+                />
+              )}
+            />
+            <Button
+              isLoading={botAddition.isPending}
+              type="submit"
+              variant="filledTonal"
+              className="self-start"
+            >
+              Add Bots
+            </Button>
+          </form>
 
-      <div className="p-4 rounded-lg border border-outline-variant flex flex-col gap-4">
+          <div className="mt-6 pt-4 border-t border-outline-variant/50">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <p className="text-sm font-normal text-on-surface-variant">
+                  Active Bots
+                </p>
+                <p className="text-2xl font-semibold mt-1">
+                  {userConfig?.bots.length || 0}
+                </p>
+              </div>
+              <BotOperationModal
+                open={botOpen}
+                handleClose={() => setBotOpen(false)}
+                onRemove={handleRemoveBots}
+              />
+              <div className="flex gap-2">
+                <Button
+                  startContent={<IcRoundContentCopy className="size-4" />}
+                  variant="filledTonal"
+                  className="text-sm"
+                  onPress={copyTokens}
+                  isDisabled={userConfig?.bots.length === 0}
+                >
+                  Copy All
+                </Button>
+                <Button
+                  startContent={
+                    <IcRoundRemoveCircleOutline className="size-4" />
+                  }
+                  variant="filledTonal"
+                  classNames={{
+                    base: "text-sm bg-red-500/20 text-red-500 data-[hover=true]:bg-red-500/30",
+                  }}
+                  onPress={() => setBotOpen(true)}
+                  isDisabled={userConfig?.bots.length === 0}
+                >
+                  Remove All
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+        className="bg-surface rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow duration-300 border border-outline-variant/50 flex flex-col gap-4"
+      >
         <div className="flex justify-between items-start">
           <div>
-            <h4 className="text-lg font-medium">Channels</h4>
-            <p className="text-sm font-normal text-on-surface-variant">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="p-2.5 rounded-xl bg-primary/10">
+                <MaterialSymbolsTv className="size-5 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold">Channels</h3>
+            </div>
+            <p className="text-sm font-normal text-on-surface-variant pl-12">
               Manage available channels
             </p>
           </div>
           <ChannelOperationModal
-            open={open}
-            handleClose={() => setOpen(false)}
+            open={channelOpen}
+            handleClose={() => setChannelOpen(false)}
             operation={channelOperation}
             channelId={channelID}
           />
@@ -456,7 +591,7 @@ export const AccountTab = memo(() => {
               title="Add Channel"
               onPress={() => {
                 setChannelOperation("add");
-                setOpen(true);
+                setChannelOpen(true);
               }}
             >
               <AddIcon />
@@ -491,14 +626,19 @@ export const AccountTab = memo(() => {
                 return (
                   <div
                     key={channel.channelId}
-                    className="flex justify-between items-center p-2 rounded bg-surface-container-low hover:bg-surface-container"
+                    className="flex justify-between items-center p-2.5 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors"
                   >
-                    <Radio
-                      value={channel.channelId!.toString()}
-                      classNames={{ label: "text-sm" }}
-                    >
-                      {channel.channelName} ({channel.channelId})
-                    </Radio>
+                    <div className="flex-1 flex flex-col">
+                      <Radio
+                        value={channel.channelId!.toString()}
+                        classNames={{ label: "text-base font-medium block" }}
+                      >
+                        {channel.channelName}
+                      </Radio>
+                      <p className="text-sm text-on-surface-variant ml-[28px] mt-0.5">
+                        ID: {channel.channelId}
+                      </p>
+                    </div>
                     <Button
                       isIconOnly
                       variant="text"
@@ -506,7 +646,7 @@ export const AccountTab = memo(() => {
                       onPress={() => {
                         setChannelOperation("delete");
                         setChannelID(channel.channelId!);
-                        setOpen(true);
+                        setChannelOpen(true);
                       }}
                     >
                       <DeleteIcon />
@@ -516,26 +656,39 @@ export const AccountTab = memo(() => {
               })}
             </RadioGroup>
           ) : (
-            <p className="text-sm text-on-surface-variant italic px-2">
-              No channels found. Press the sync button
-              <SyncIcon className="inline-block align-middle" /> to fetch your
-              channels from Telegram.
-            </p>
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <p className="text-sm text-on-surface-variant">
+                No channels found. Press the sync button to fetch your channels
+                from Telegram.
+              </p>
+            </div>
           )}
         </div>
-      </div>
+      </motion.div>
 
-      <div className="p-4 rounded-lg border border-outline-variant">
-        <p className="text-lg font-medium">Active Sessions</p>
-        <p className="text-sm font-normal text-on-surface-variant mb-2">
-          Manage active sessions for your account.
-        </p>
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3 pt-2 justify-items-start">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.2 }}
+        className="bg-surface rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow duration-300 border border-outline-variant/50"
+      >
+        <div className="flex items-start gap-3">
+          <div className="p-2.5 rounded-xl bg-primary/10">
+            <IcRoundSecurity className="size-5 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg font-semibold mb-0.5">Active Sessions</h3>
+            <p className="text-sm text-on-surface-variant">
+              Manage active sessions for your account.
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-3 mt-4 justify-items-start">
           {sessions?.map((session) => (
             <Session key={session.hash} {...session} />
           ))}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 });
