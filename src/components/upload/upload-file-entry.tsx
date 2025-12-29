@@ -70,27 +70,11 @@ const UploadFileEntry = memo(
       (state) => state.actions.toggleFolderCollapsed,
     );
 
-    const getNestingDepth = (
-      id: string,
-      _fileIds: string[],
-      fileMap: Record<string, any>,
-    ): number => {
-      let depth = 0;
-      let currentId = id;
-      while (fileMap[currentId]?.parentFolderId) {
-        depth++;
-        currentId = fileMap[currentId].parentFolderId;
-      }
-      return depth;
-    };
-
-    const nestingDepth = getNestingDepth(id, fileIds, fileMap);
-    const indent = Math.min(nestingDepth * 1.5, 8);
+    const isChild = Boolean(fileMap[id]?.parentFolderId);
 
     return (
       <div
-        style={{ marginLeft: `${indent}rem` }}
-        className={clsx(nestingDepth > 0 && "folder-connector relative")}
+        className={clsx(isChild && "folder-connector relative")}
       >
         <div
           className={clsx(
@@ -156,7 +140,7 @@ const UploadFileEntry = memo(
         </div>
 
         {isFolder && !collapsed && (
-          <div className="mt-2 space-y-2">
+          <div className="mt-2 space-y-2 ml-6">
             {childFiles.map((childId) => (
               <UploadFileEntry
                 key={childId}

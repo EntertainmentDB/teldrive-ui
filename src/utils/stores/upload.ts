@@ -104,12 +104,12 @@ export const useFileUploadStore = create<UploadState>()(
 
       addFolder: (files: File[], folderName: string) =>
         set((state) => {
-          const folderId = Math.random().toString(36).slice(2, 9);
-          const folderFile = new File([], folderName, { type: "folder" });
+          const rootFolderId = Math.random().toString(36).slice(2, 9);
+          const rootFolderFile = new File([], folderName, { type: "folder" });
 
-          state.fileMap[folderId] = {
-            id: folderId,
-            file: folderFile,
+          state.fileMap[rootFolderId] = {
+            id: rootFolderId,
+            file: rootFolderFile,
             status: FileUploadStatus.NOT_STARTED,
             totalChunks: 0,
             controller: new AbortController(),
@@ -117,30 +117,66 @@ export const useFileUploadStore = create<UploadState>()(
             isFolder: true,
             speed: 0,
             collapsed: false,
+            relativePath: folderName,
           };
 
-          const newFiles = files.map((file) => ({
-            id: Math.random().toString(36).slice(2, 9),
-            file,
-            status: FileUploadStatus.NOT_STARTED,
-            totalChunks: 0,
-            controller: new AbortController(),
-            progress: 0,
-            isFolder: false,
-            parentFolderId: folderId,
-            relativePath: file.webkitRelativePath,
-            speed: 0,
-            collapsed: false,
-          }));
+          state.filesIds.push(rootFolderId);
+          const folderPathMap = new Map<string, string>();
+          folderPathMap.set(folderName, rootFolderId);
 
-          state.filesIds.push(folderId);
-          newFiles.forEach((file) => {
-            state.fileMap[file.id] = file;
-            state.filesIds.push(file.id);
+          files.forEach((file) => {
+            const pathParts = file.webkitRelativePath.split("/");
+            let currentPath = pathParts[0];
+            let parentId = rootFolderId;
+
+            // Process intermediate folders
+            for (let i = 1; i < pathParts.length - 1; i++) {
+              const part = pathParts[i];
+              currentPath = `${currentPath}/${part}`;
+              
+              if (!folderPathMap.has(currentPath)) {
+                const folderId = Math.random().toString(36).slice(2, 9);
+                const folderFile = new File([], part, { type: "folder" });
+                
+                state.fileMap[folderId] = {
+                  id: folderId,
+                  file: folderFile,
+                  status: FileUploadStatus.NOT_STARTED,
+                  totalChunks: 0,
+                  controller: new AbortController(),
+                  progress: 0,
+                  isFolder: true,
+                  parentFolderId: parentId,
+                  speed: 0,
+                  collapsed: false,
+                  relativePath: currentPath,
+                };
+                state.filesIds.push(folderId);
+                folderPathMap.set(currentPath, folderId);
+              }
+              parentId = folderPathMap.get(currentPath)!;
+            }
+
+            // Create file entry
+            const fileId = Math.random().toString(36).slice(2, 9);
+            state.fileMap[fileId] = {
+              id: fileId,
+              file: file,
+              status: FileUploadStatus.NOT_STARTED,
+              totalChunks: 0,
+              controller: new AbortController(),
+              progress: 0,
+              isFolder: false,
+              parentFolderId: parentId,
+              relativePath: file.webkitRelativePath,
+              speed: 0,
+              collapsed: false,
+            };
+            state.filesIds.push(fileId);
           });
 
           if (!state.currentFileId) {
-            state.currentFileId = folderId;
+            state.currentFileId = rootFolderId;
           }
         }),
 
@@ -216,29 +252,29 @@ export const useFileUploadStore = create<UploadState>()(
 
       removeFile: (id: string) =>
         set((state) => {
-          const file = state.fileMap[id];
-
-          if (file?.controller && file.status !== FileUploadStatus.CANCELLED) {
-            file.controller.abort();
+          const filesToCancel = [id];
+          let i = 0;
+          while (i < filesToCancel.length) {
+            const currentId = filesToCancel[i];
+            const file = state.fileMap[currentId];
+            if (file?.isFolder) {
+               const children = state.filesIds.filter(fid => state.fileMap[fid]?.parentFolderId === currentId);
+               filesToCancel.push(...children);
+            }
+            i++;
           }
 
-          const wasCurrentFile = state.currentFileId === id;
+          const isCurrentFileCancelled = filesToCancel.includes(state.currentFileId);
 
-          if (file?.isFolder) {
-            const childrenIds = state.filesIds.filter(
-              (fileId) => state.fileMap[fileId]?.parentFolderId === id,
-            );
-            childrenIds.forEach((childId) => {
-              const childFile = state.fileMap[childId];
-              if (childFile?.controller && childFile.status !== FileUploadStatus.CANCELLED) {
-                childFile.controller.abort();
-              }
-              state.fileMap[childId].status = FileUploadStatus.CANCELLED;
-            });
-            state.fileMap[id].status = FileUploadStatus.CANCELLED;
-          } else {
-            state.fileMap[id].status = FileUploadStatus.CANCELLED;
-          }
+          filesToCancel.forEach(cancelId => {
+             const file = state.fileMap[cancelId];
+             if (file) {
+                 if (file.controller && file.status !== FileUploadStatus.CANCELLED) {
+                    file.controller.abort();
+                 }
+                 file.status = FileUploadStatus.CANCELLED;
+             }
+          });
 
           if (state.filesIds.length === 0) {
             state.currentFileId = "";
@@ -246,15 +282,21 @@ export const useFileUploadStore = create<UploadState>()(
             state.uploadOpen = false;
             state.fileDialogOpen = false;
             state.folderDialogOpen = false;
-          } else if (wasCurrentFile) {
-            const nextFileIndex = state.filesIds.findIndex(
-              (fileId) => state.fileMap[fileId]?.status === FileUploadStatus.NOT_STARTED,
-            );
-            if (nextFileIndex !== -1) {
-              state.currentFileId = state.filesIds[nextFileIndex];
-            } else {
-              state.currentFileId = "";
-            }
+          } else if (isCurrentFileCancelled) {
+             const eligibleFiles = state.filesIds.filter((id) => {
+                const file = state.fileMap[id];
+                if (file.status !== FileUploadStatus.NOT_STARTED) return false;
+                if (file.parentFolderId) {
+                  const parent = state.fileMap[file.parentFolderId];
+                  return (
+                    parent &&
+                    (parent.status === FileUploadStatus.UPLOADED ||
+                      parent.status === FileUploadStatus.SKIPPED)
+                  );
+                }
+                return true;
+             });
+             state.currentFileId = eligibleFiles[0] || "";
           }
         }),
 

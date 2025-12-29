@@ -231,7 +231,7 @@ export const Upload = ({ queryKey }: UploadProps) => {
             body: {
               name: currentFile.file.name,
               type: "folder",
-              path: path || "/",
+              path: currentFile.relativePath ? `${path || "/"}/${currentFile.relativePath.split("/").slice(0, -1).join("/")}` : path || "/",
             },
           })
           .then(() => {
