@@ -82,6 +82,10 @@ export const SettingsField = memo(
               value={localValue as string}
               onValueChange={(v) => handleFieldChange(v as T)}
               isDisabled={disabled}
+              classNames={{
+                inputWrapper:
+                  "bg-surface-container hover:bg-surface-container-high group-data-[focus=true]:bg-surface-container-high border-none transition-colors",
+              }}
             />
           );
 
@@ -93,9 +97,17 @@ export const SettingsField = memo(
               isInvalid={!!error}
               errorMessage={error}
               type="number"
-              value={localValue !== undefined && localValue !== null ? String(localValue) : ""}
+              value={
+                localValue !== undefined && localValue !== null
+                  ? String(localValue)
+                  : ""
+              }
               onValueChange={(v) => handleFieldChange(Number(v) as T)}
               isDisabled={disabled}
+              classNames={{
+                inputWrapper:
+                  "bg-surface-container hover:bg-surface-container-high group-data-[focus=true]:bg-surface-container-high border-none transition-colors",
+              }}
             />
           );
 
@@ -112,13 +124,25 @@ export const SettingsField = memo(
                 isEnabled: false,
               }}
               classNames={{
-                popoverContent: "rounded-lg shadow-1",
+                popoverContent:
+                  "bg-surface-container-high border border-outline-variant/30 rounded-[24px] shadow-2xl",
+                trigger:
+                  "bg-surface-container hover:bg-surface-container-high border-none transition-colors",
+                listbox: "rounded-xl bg-transparent",
+              }}
+              listboxProps={{
+                itemClasses: {
+                  base: "rounded-xl hover:bg-on-surface/10 px-4 py-2.5 transition-colors",
+                  title: "text-base font-medium",
+                },
               }}
               items={config.options || []}
               onSelectionChange={(keys) => {
                 const selected = Array.from(keys)[0];
                 if (selected !== undefined) {
-                  const option = config.options?.find((opt) => String(opt.value) === selected);
+                  const option = config.options?.find(
+                    (opt) => String(opt.value) === selected,
+                  );
                   if (option) {
                     handleFieldChange(option.value as T);
                   }
@@ -126,7 +150,7 @@ export const SettingsField = memo(
               }}
               isDisabled={disabled}
             >
-              {(item) => (
+              {(item: any) => (
                 <SelectItem key={String(item.value)} value={String(item.value)}>
                   {item.label}
                 </SelectItem>
@@ -151,12 +175,23 @@ export const SettingsField = memo(
     };
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-        <div>
-          <p className="text-lg font-medium">{config.label}</p>
-          <p className="text-sm font-normal text-on-surface-variant">{config.description}</p>
+      <div className="flex flex-col md:flex-row gap-4 md:items-center justify-between py-2 border-b border-outline-variant/30 last:border-0 last:pb-0 first:pt-0">
+        <div className="flex-1 min-w-0">
+          <p className="text-base font-semibold text-on-surface">
+            {config.label}
+          </p>
+          <p className="text-sm font-normal text-on-surface-variant max-w-xl">
+            {config.description}
+          </p>
         </div>
-        <div className={clsx("flex justify-start", disabled && "opacity-50")}>{renderField()}</div>
+        <div
+          className={clsx(
+            "flex justify-start min-w-[200px] md:justify-end",
+            disabled && "opacity-50",
+          )}
+        >
+          {renderField()}
+        </div>
       </div>
     );
   },
