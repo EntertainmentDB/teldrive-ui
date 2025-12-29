@@ -17,13 +17,9 @@ export interface SettingsState {
 export const useSettingsStore = create<SettingsState>()(
   persist(
     immer((set) => ({
-      settings: { ...settings },
+      settings,
       updateSetting: <K extends keyof Settings>(key: K, value: Settings[K]) =>
         set((state) => {
-          if (value instanceof HTMLElement || value instanceof Event) {
-            console.warn("Cannot store DOM elements or events in settings", { key, value });
-            return;
-          }
           state.settings[key] = value;
         }),
       updateSettings: (newSettings) =>
@@ -37,6 +33,24 @@ export const useSettingsStore = create<SettingsState>()(
     })),
     {
       name: "teldrive-settings",
+      merge: (persistedState: any, currentState) => {
+        const defaultSettings = getSettingsValues();
+        const mergedSettings = { ...defaultSettings };
+
+        if (persistedState && typeof persistedState.settings === "object") {
+          for (const key in persistedState.settings) {
+            const value = persistedState.settings[key];
+            if (value !== undefined && value !== null && value !== "") {
+              mergedSettings[key as keyof Settings] = value;
+            }
+          }
+        }
+
+        return {
+          ...currentState,
+          settings: mergedSettings,
+        };
+      },
     },
   ),
 );

@@ -1,42 +1,36 @@
-import type React from "react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button, Listbox, ListboxItem } from "@tw-material/react";
-import IconParkOutlineCloseOne from "~icons/icon-park-outline/close-one";
-import IconParkOutlineDownC from "~icons/icon-park-outline/down-c";
 import clsx from "clsx";
+import type React from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useShallow } from "zustand/react/shallow";
 
-import type { UploadProps } from "./types";
-import { UploadFileEntry } from "./upload-file-entry";
-import { uploadFile } from "./upload-file";
-import { filesize } from "@/utils/common";
-import useSettings from "@/hooks/use-settings";
+import IconParkOutlineCloseOne from "~icons/icon-park-outline/close-one";
+import IconParkOutlineDownC from "~icons/icon-park-outline/down-c";
+
 import { $api } from "@/utils/api";
+import { filesize } from "@/utils/common";
 import { useSession } from "@/utils/query-options";
 import { FileUploadStatus, useFileUploadStore } from "@/utils/stores";
+import { useSettingsStore } from "@/utils/stores/settings";
 import { useSearch } from "@tanstack/react-router";
+import type { UploadProps } from "./types";
+import { uploadFile } from "./upload-file";
+import { UploadFileEntry } from "./upload-file-entry";
 
 export const Upload = ({ queryKey }: UploadProps) => {
-  const {
-    fileIds,
-    currentFile,
-    collapse,
-    fileDialogOpen,
-    folderDialogOpen,
-    actions,
-    fileMap,
-  } = useFileUploadStore(
-    useShallow((state) => ({
-      fileIds: state.filesIds,
-      fileMap: state.fileMap,
-      currentFile: state.fileMap[state.currentFileId],
-      collapse: state.collapse,
-      actions: state.actions,
-      fileDialogOpen: state.fileDialogOpen,
-      folderDialogOpen: state.folderDialogOpen,
-    })),
-  );
+  const { fileIds, currentFile, collapse, fileDialogOpen, folderDialogOpen, actions, fileMap } =
+    useFileUploadStore(
+      useShallow((state) => ({
+        fileIds: state.filesIds,
+        fileMap: state.fileMap,
+        currentFile: state.fileMap[state.currentFileId],
+        collapse: state.collapse,
+        actions: state.actions,
+        fileDialogOpen: state.fileDialogOpen,
+        folderDialogOpen: state.folderDialogOpen,
+      })),
+    );
 
   const isDialogOpening = useRef(false);
 
@@ -44,8 +38,7 @@ export const Upload = ({ queryKey }: UploadProps) => {
     const topLevelIds = fileIds.filter((id) => {
       const file = fileMap[id];
       if (!file) return false;
-      const isChildFile =
-        file.parentFolderId && fileIds.includes(file.parentFolderId);
+      const isChildFile = file.parentFolderId && fileIds.includes(file.parentFolderId);
       return !isChildFile;
     });
 
@@ -68,22 +61,14 @@ export const Upload = ({ queryKey }: UploadProps) => {
       );
     });
 
-    const folders = validTopLevelIds.filter(
-      (id) => fileMap[id]?.isFolder,
-    ).length;
-    const files = validTopLevelIds.filter(
-      (id) => !fileMap[id]?.isFolder,
-    ).length;
+    const folders = validTopLevelIds.filter((id) => fileMap[id]?.isFolder).length;
+    const files = validTopLevelIds.filter((id) => !fileMap[id]?.isFolder).length;
 
-    const totalSize = validFileIds.reduce(
-      (sum, id) => sum + (fileMap[id]?.file.size || 0),
-      0,
-    );
+    const totalSize = validFileIds.reduce((sum, id) => sum + (fileMap[id]?.file.size || 0), 0);
     const uploadedSize = validFileIds.reduce((sum, id) => {
       const file = fileMap[id];
       // For uploaded files, count as 100% progress
-      const progress =
-        file?.status === FileUploadStatus.UPLOADED ? 100 : file?.progress || 0;
+      const progress = file?.status === FileUploadStatus.UPLOADED ? 100 : file?.progress || 0;
       return sum + (progress / 100) * (file?.file.size || 0);
     }, 0);
 
@@ -103,13 +88,12 @@ export const Upload = ({ queryKey }: UploadProps) => {
     return fileIds.filter((id) => {
       const file = fileMap[id];
       if (!file) return false;
-      const isChildFile =
-        file.parentFolderId && fileIds.includes(file.parentFolderId);
+      const isChildFile = file.parentFolderId && fileIds.includes(file.parentFolderId);
       return !isChildFile;
     });
   }, [fileIds, fileMap]);
 
-  const { settings } = useSettings();
+  const { settings } = useSettingsStore();
 
   const [session] = useSession();
 
@@ -218,10 +202,7 @@ export const Upload = ({ queryKey }: UploadProps) => {
   const { path } = useSearch({ from: "/_authed/$view" });
 
   useEffect(() => {
-    if (
-      currentFile?.id &&
-      currentFile?.status === FileUploadStatus.NOT_STARTED
-    ) {
+    if (currentFile?.id && currentFile?.status === FileUploadStatus.NOT_STARTED) {
       if (currentFile.isFolder) {
         actions.setFileUploadStatus(currentFile.id, FileUploadStatus.UPLOADING);
         creatFile
@@ -235,27 +216,15 @@ export const Upload = ({ queryKey }: UploadProps) => {
             },
           })
           .then(() => {
-            actions.setFileUploadStatus(
-              currentFile.id,
-              FileUploadStatus.UPLOADED,
-            );
+            actions.setFileUploadStatus(currentFile.id, FileUploadStatus.UPLOADED);
             actions.startNextUpload();
           })
           .catch((err) => {
-            if (
-              err.message.includes("already exists") ||
-              err.message.includes("exists")
-            ) {
-              actions.setFileUploadStatus(
-                currentFile.id,
-                FileUploadStatus.SKIPPED,
-              );
+            if (err.message.includes("already exists") || err.message.includes("exists")) {
+              actions.setFileUploadStatus(currentFile.id, FileUploadStatus.SKIPPED);
             } else {
               actions.setError(currentFile.id, err.message);
-              actions.setFileUploadStatus(
-                currentFile.id,
-                FileUploadStatus.FAILED,
-              );
+              actions.setFileUploadStatus(currentFile.id, FileUploadStatus.FAILED);
             }
           });
       } else {
@@ -268,6 +237,8 @@ export const Upload = ({ queryKey }: UploadProps) => {
           Number(settings.splitFileSize),
           session?.userId as number,
           Number(settings.uploadConcurrency),
+          Number(settings.uploadRetries),
+          Number(settings.uploadRetryDelay),
           Boolean(settings.encryptFiles),
           currentFile.controller.signal,
           (progress) => actions.setProgress(currentFile.id, progress),
@@ -277,43 +248,28 @@ export const Upload = ({ queryKey }: UploadProps) => {
               body: payload,
             });
             if (creatFile.isSuccess) {
-              actions.setFileUploadStatus(
-                currentFile.id,
-                FileUploadStatus.UPLOADED,
-              );
+              actions.setFileUploadStatus(currentFile.id, FileUploadStatus.UPLOADED);
             }
           },
           currentFile.parentFolderId !== undefined, // Skip check for folder files
         )
           .then(() => {
             if (currentFile.status !== FileUploadStatus.SKIPPED) {
-              actions.setFileUploadStatus(
-                currentFile.id,
-                FileUploadStatus.UPLOADED,
-              );
+              actions.setFileUploadStatus(currentFile.id, FileUploadStatus.UPLOADED);
             }
             actions.startNextUpload();
           })
           .catch((error) => {
             if (error.message.includes("already exists")) {
-              actions.setFileUploadStatus(
-                currentFile.id,
-                FileUploadStatus.SKIPPED,
-              );
+              actions.setFileUploadStatus(currentFile.id, FileUploadStatus.SKIPPED);
             } else if (error.message.includes("aborted")) {
-              actions.setFileUploadStatus(
-                currentFile.id,
-                FileUploadStatus.CANCELLED,
-              );
+              actions.setFileUploadStatus(currentFile.id, FileUploadStatus.CANCELLED);
             } else {
               actions.setError(
                 currentFile.id,
                 error instanceof Error ? error.message : "upload failed",
               );
-              actions.setFileUploadStatus(
-                currentFile.id,
-                FileUploadStatus.FAILED,
-              );
+              actions.setFileUploadStatus(currentFile.id, FileUploadStatus.FAILED);
             }
           });
       }
@@ -361,8 +317,7 @@ export const Upload = ({ queryKey }: UploadProps) => {
                 <div className="flex flex-1 items-center gap-3 text-xs text-on-surface-variant">
                   {uploadSummary.totalSize > 0 && (
                     <span className="w-1/2">
-                      {filesize(uploadSummary.uploadedSize)} of{" "}
-                      {filesize(uploadSummary.totalSize)}
+                      {filesize(uploadSummary.uploadedSize)} of {filesize(uploadSummary.totalSize)}
                     </span>
                   )}
                 </div>

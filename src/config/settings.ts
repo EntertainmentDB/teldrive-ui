@@ -1,5 +1,3 @@
-import { splitFileSizes } from "@/utils/common";
-
 export type FieldType =
   | "text"
   | "number"
@@ -10,7 +8,9 @@ export type FieldType =
   | "textarea";
 
 type SettingKeys =
-  | "concurrency"
+  | "uploadConcurrency"
+  | "uploadRetries"
+  | "uploadRetryDelay"
   | "randomChunking"
   | "resizerHost"
   | "pageSize"
@@ -35,13 +35,36 @@ export interface SettingFieldConfig<T> {
   category: "upload" | "display" | "security" | "other";
 }
 
+const splitFileSizes = [
+  { value: 100 * 1024 * 1024, label: "100MB" },
+  { value: 500 * 1024 * 1024, label: "500MB" },
+  { value: 1000 * 1024 * 1024, label: "1GB" },
+  { value: 2 * 1000 * 1024 * 1024, label: "2GB" },
+];
+
 export const generalSettingsConfig: SettingFieldConfig<SettingValue>[] = [
   {
-    key: "concurrency",
+    key: "uploadConcurrency",
     type: "number",
     label: "Concurrency",
     description: "Concurrent Part Uploads",
     defaultValue: 4,
+    category: "upload",
+  },
+  {
+    key: "uploadRetries",
+    type: "number",
+    label: "Upload Retries",
+    description: "Number of retries for each part upload",
+    defaultValue: 3,
+    category: "upload",
+  },
+  {
+    key: "uploadRetryDelay",
+    type: "number",
+    label: "Upload Retry Delay",
+    description: "Delay between retries in milliseconds",
+    defaultValue: 1000,
     category: "upload",
   },
   {
@@ -82,7 +105,7 @@ export const generalSettingsConfig: SettingFieldConfig<SettingValue>[] = [
     type: "switch",
     label: "Random Chunking",
     description: "Randomize Names of File Chunks",
-    defaultValue: false,
+    defaultValue: true,
     category: "upload",
   },
   {
@@ -111,9 +134,22 @@ export type Settings = {
 
 export function getSettingsValues(): Settings {
   const settings = {} as any;
-  generalSettingsConfig.forEach((item) => {
-    settings[item.key] = item?.defaultValue || "";
-  });
+  for (const item of generalSettingsConfig) {
+    if (item.defaultValue !== undefined) {
+      settings[item.key] = item.defaultValue;
+    } else {
+      switch (item.type) {
+        case "number":
+          settings[item.key] = 0;
+          break;
+        case "switch":
+          settings[item.key] = false;
+          break;
+        default:
+          settings[item.key] = "";
+      }
+    }
+  }
   return settings;
 }
 

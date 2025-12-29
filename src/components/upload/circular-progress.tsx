@@ -33,7 +33,7 @@ export const CircularProgress = memo(function CircularProgress({
           "flex items-center justify-center rounded-full",
           status === FileUploadStatus.CANCELLED && "text-on-surface-variant/50",
           status === FileUploadStatus.FAILED && "text-error",
-          status === FileUploadStatus.UPLOADED && "text-primary",
+          status === FileUploadStatus.UPLOADED && "text-green-300",
         )}
         style={{ width: size, height: size }}
       >

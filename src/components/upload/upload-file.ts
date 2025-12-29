@@ -53,11 +53,13 @@ export const uploadFile = async (
   chunkSize: number,
   userId: number,
   concurrency: number,
+  retries: number,
+  retryDelay: number,
   encyptFile: boolean,
   signal: AbortSignal,
   onProgress: (progress: number) => void,
   onChunksCompleted: (chunks: number) => void,
-  onCreate: (payload: any) => Promise<void>,
+  onCreate: (payload: components["schemas"]["File"]) => Promise<void>,
   skipCheck = false,
 ) => {
   const fileName = file.name;
@@ -134,19 +136,34 @@ export const uploadFile = async (
             channelId,
           } as const;
 
-          const asset = await uploadChunk<components["schemas"]["UploadPart"]>(
-            url,
-            fileBlob,
-            params,
-            signal,
-            (progress) => {
-              partProgress[partIndex] = progress;
-            },
-          );
+          let retryCount = 0;
+          let asset: components["schemas"]["UploadPart"] | null = null;
+
+          while (retryCount <= retries) {
+            try {
+              asset = await uploadChunk<components["schemas"]["UploadPart"]>(
+                url,
+                fileBlob,
+                params,
+                signal,
+                (progress) => {
+                  partProgress[partIndex] = progress;
+                },
+              );
+              break;
+            } catch (error) {
+              if (signal.aborted || retryCount === retries) {
+                throw error;
+              }
+              retryCount++;
+              partProgress[partIndex] = 0;
+              await new Promise((resolve) => setTimeout(resolve, retryDelay * retryCount));
+            }
+          }
 
           _uploadedBytes += end - start;
 
-          return asset;
+          return asset!;
         })(),
       ),
     );

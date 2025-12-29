@@ -93,7 +93,7 @@ export const SettingsField = memo(
               isInvalid={!!error}
               errorMessage={error}
               type="number"
-              value={String(localValue)}
+              value={localValue !== undefined && localValue !== null ? String(localValue) : ""}
               onValueChange={(v) => handleFieldChange(Number(v) as T)}
               isDisabled={disabled}
             />
@@ -118,9 +118,7 @@ export const SettingsField = memo(
               onSelectionChange={(keys) => {
                 const selected = Array.from(keys)[0];
                 if (selected !== undefined) {
-                  const option = config.options?.find(
-                    (opt) => String(opt.value) === selected,
-                  );
+                  const option = config.options?.find((opt) => String(opt.value) === selected);
                   if (option) {
                     handleFieldChange(option.value as T);
                   }
@@ -156,13 +154,9 @@ export const SettingsField = memo(
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
         <div>
           <p className="text-lg font-medium">{config.label}</p>
-          <p className="text-sm font-normal text-on-surface-variant">
-            {config.description}
-          </p>
+          <p className="text-sm font-normal text-on-surface-variant">{config.description}</p>
         </div>
-        <div className={clsx("flex justify-start", disabled && "opacity-50")}>
-          {renderField()}
-        </div>
+        <div className={clsx("flex justify-start", disabled && "opacity-50")}>{renderField()}</div>
       </div>
     );
   },

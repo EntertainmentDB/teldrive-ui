@@ -70,16 +70,6 @@ const UploadFileEntry = memo(function UploadFileEntry({
 
   const isChild = Boolean(fileMap[id]?.parentFolderId);
 
-  const statusText = useMemo(() => {
-    if (displayStatus === FileUploadStatus.UPLOADED) return "Completed";
-    if (displayStatus === FileUploadStatus.FAILED) return "Failed";
-    if (displayStatus === FileUploadStatus.CANCELLED) return "Cancelled";
-    if (displayStatus === FileUploadStatus.SKIPPED) return "Skipped";
-    if (displayStatus === FileUploadStatus.UPLOADING)
-      return `Uploading ${Math.round(displayProgress)}%`;
-    return "Pending";
-  }, [displayStatus, displayProgress]);
-
   return (
     <div className={clsx("group/item", isChild && "ml-4")}>
       <div
