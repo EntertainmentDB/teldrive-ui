@@ -92,7 +92,11 @@ export const useFileUploadStore = create<UploadState>()(
             state.currentFileId = ids[0];
           } else {
             const currentFile = state.fileMap[state.currentFileId];
-            if (currentFile.status === FileUploadStatus.UPLOADED) {
+            // Update currentFileId if current file is not actively uploading
+            const isCurrentFileActive =
+              currentFile.status === FileUploadStatus.NOT_STARTED ||
+              currentFile.status === FileUploadStatus.UPLOADING;
+            if (!isCurrentFileActive) {
               state.currentFileId = ids[0];
             }
           }

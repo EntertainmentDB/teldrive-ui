@@ -51,25 +51,46 @@ export const Upload = ({ queryKey }: UploadProps) => {
       return !isChildFile;
     });
 
-    const folders = topLevelIds.filter((id) => fileMap[id]?.isFolder).length;
-    const files = topLevelIds.filter((id) => !fileMap[id]?.isFolder).length;
+    // Filter out cancelled, failed, and skipped files from progress calculations
+    const validFileIds = fileIds.filter((id) => {
+      const status = fileMap[id]?.status;
+      return (
+        status !== FileUploadStatus.CANCELLED &&
+        status !== FileUploadStatus.FAILED &&
+        status !== FileUploadStatus.SKIPPED
+      );
+    });
 
-    const totalProgress =
-      fileIds.length > 0
-        ? fileIds.reduce((sum, id) => sum + (fileMap[id]?.progress || 0), 0) /
-          fileIds.length
-        : 0;
+    const validTopLevelIds = topLevelIds.filter((id) => {
+      const status = fileMap[id]?.status;
+      return (
+        status !== FileUploadStatus.CANCELLED &&
+        status !== FileUploadStatus.FAILED &&
+        status !== FileUploadStatus.SKIPPED
+      );
+    });
 
-    const totalSize = fileIds.reduce(
+    const folders = validTopLevelIds.filter(
+      (id) => fileMap[id]?.isFolder,
+    ).length;
+    const files = validTopLevelIds.filter(
+      (id) => !fileMap[id]?.isFolder,
+    ).length;
+
+    const totalSize = validFileIds.reduce(
       (sum, id) => sum + (fileMap[id]?.file.size || 0),
       0,
     );
-    const uploadedSize = fileIds.reduce(
-      (sum, id) =>
-        sum +
-        ((fileMap[id]?.progress || 0) / 100) * (fileMap[id]?.file.size || 0),
-      0,
-    );
+    const uploadedSize = validFileIds.reduce((sum, id) => {
+      const file = fileMap[id];
+      // For uploaded files, count as 100% progress
+      const progress =
+        file?.status === FileUploadStatus.UPLOADED ? 100 : file?.progress || 0;
+      return sum + (progress / 100) * (file?.file.size || 0);
+    }, 0);
+
+    // Calculate progress only for actual files (exclude folders)
+    const totalProgress = totalSize > 0 ? (uploadedSize / totalSize) * 100 : 0;
 
     return {
       folders,
@@ -178,7 +199,6 @@ export const Upload = ({ queryKey }: UploadProps) => {
         const pathParts = relativePath.split("/");
         const folderName = pathParts[0] || "Untitled Folder";
         actions.addFolder(Array.from(files), folderName);
-        toast.success(`Added ${fileList.length} files from "${folderName}"`);
       } else {
         const validFiles = Array.from(files).filter((f) => f.size > 0);
         if (validFiles.length > 0) {
@@ -339,10 +359,12 @@ export const Upload = ({ queryKey }: UploadProps) => {
               </div>
               <div className="flex items-center p-1 justify-between">
                 <div className="flex flex-1 items-center gap-3 text-xs text-on-surface-variant">
-                  <span className="w-1/2">
-                    {filesize(uploadSummary.uploadedSize)} of{" "}
-                    {filesize(uploadSummary.totalSize)}
-                  </span>
+                  {uploadSummary.totalSize > 0 && (
+                    <span className="w-1/2">
+                      {filesize(uploadSummary.uploadedSize)} of{" "}
+                      {filesize(uploadSummary.totalSize)}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-1.5 transition-all duration-300 ease-out">
                   <Button
