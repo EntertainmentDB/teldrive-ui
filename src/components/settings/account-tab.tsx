@@ -1,13 +1,8 @@
 import { memo, useCallback, useState } from "react";
 import type { UserSession } from "@/types";
-import {
-  useMutation,
-  useQueryClient,
-  useSuspenseQueries,
-} from "@tanstack/react-query";
+import { useQueryClient, useSuspenseQueries } from "@tanstack/react-query";
 import {
   Button,
-  scrollbarClasses,
   Textarea,
   RadioGroup,
   Radio,
@@ -18,7 +13,6 @@ import {
   Modal,
   ModalContent,
 } from "@tw-material/react";
-import IcRoundCancel from "~icons/ic/round-cancel";
 import IcRoundContentCopy from "~icons/ic/round-content-copy";
 import IcRoundRemoveCircleOutline from "~icons/ic/round-remove-circle-outline";
 import clsx from "clsx";
@@ -27,8 +21,9 @@ import { motion } from "framer-motion";
 import { Controller, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 
-import { chunkArray, copyDataToClipboard } from "@/utils/common";
-import { $api, fetchClient } from "@/utils/api";
+import { copyDataToClipboard } from "@/utils/common";
+import { scrollbarClasses } from "@/utils/classes";
+import { $api } from "@/utils/api";
 
 import type { components } from "@/lib/api";
 import { NetworkError } from "@/utils/fetch-throw";
@@ -38,7 +33,6 @@ import AddIcon from "~icons/material-symbols/add-circle";
 import MaterialSymbolsSmartToy from "~icons/material-symbols/smart-toy";
 import MaterialSymbolsTv from "~icons/material-symbols/tv";
 import IcRoundSecurity from "~icons/ic/round-security";
-import IcRoundCheck from "~icons/ic/round-check";
 
 const validateBots = (value?: string) => {
   if (value) {

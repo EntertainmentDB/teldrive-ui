@@ -5,13 +5,11 @@ import { Button, Listbox, ListboxItem } from "@tw-material/react";
 import IconParkOutlineCloseOne from "~icons/icon-park-outline/close-one";
 import IconParkOutlineDownC from "~icons/icon-park-outline/down-c";
 import clsx from "clsx";
-import toast from "react-hot-toast";
 import { useShallow } from "zustand/react/shallow";
 
 import type { UploadProps } from "./types";
 import { UploadFileEntry } from "./upload-file-entry";
 import { uploadFile } from "./upload-file";
-import { scrollbarClasses } from "@/utils/classes";
 import { filesize } from "@/utils/common";
 import useSettings from "@/hooks/use-settings";
 import { $api } from "@/utils/api";
@@ -231,7 +229,9 @@ export const Upload = ({ queryKey }: UploadProps) => {
             body: {
               name: currentFile.file.name,
               type: "folder",
-              path: currentFile.relativePath ? `${path || "/"}/${currentFile.relativePath.split("/").slice(0, -1).join("/")}` : path || "/",
+              path: currentFile.relativePath
+                ? `${path || "/"}/${currentFile.relativePath.split("/").slice(0, -1).join("/")}`
+                : path || "/",
             },
           })
           .then(() => {
@@ -398,7 +398,7 @@ export const Upload = ({ queryKey }: UploadProps) => {
                 collapse
                   ? "opacity-0 scale-95 translate-y-0 pointer-events-none h-0"
                   : "opacity-100 scale-100 translate-y-0 pointer-events-auto max-h-80 overflow-x-auto overflow-y-auto",
-                scrollbarClasses,
+                "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-primary [&::-webkit-scrollbar-thumb]:rounded",
               )}
             >
               <div className="px-3 py-2">

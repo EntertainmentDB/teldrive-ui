@@ -1,10 +1,10 @@
 import md5 from "md5";
 import pLimit from "p-limit";
 
-import type { UploadParams } from "./types";
+import type { components } from "@/lib/api";
 import { fetchClient } from "@/utils/api";
 import { formatTime, zeroPad } from "@/utils/common";
-import type { components } from "@/lib/api";
+import type { UploadParams } from "./types";
 
 export const uploadChunk = <T extends {}>(
   url: string,

@@ -1,6 +1,5 @@
 import type { FileUploadStatus } from "@/utils/stores";
 
-// Circular Progress Component
 export interface CircularProgressProps {
   progress: number;
   size?: number;

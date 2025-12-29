@@ -1,5 +1,5 @@
 import { memo, useCallback } from "react";
-import { scrollbarClasses } from "@tw-material/react";
+import { scrollbarClasses } from "@/utils/classes";
 import clsx from "clsx";
 
 import { generalSettingsConfig, categoryConfig } from "@/config/settings";
